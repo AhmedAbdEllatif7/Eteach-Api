@@ -56,6 +56,7 @@ Route::controller(ApiController::class)->group(function (){
     Route::get('show_fav_course', 'showFavCourse');
     Route::get('show_feedbacks_Course_id',  'show_feedbacks_Course_id');
     Route::get('get_profile', 'getProfile');
-
+    Route::get('get_my_rooms', 'getMyRooms');
+    Route::get('get_my_courses', 'getMyCourses');
 });
 

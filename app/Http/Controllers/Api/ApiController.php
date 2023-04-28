@@ -49,7 +49,7 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $emailErrors = $errors->get('email');
+            $emailErrors = $errors->first('email');
             // Do something with the error messages
             if ($emailErrors) {
                 return $this->ApiResponse($emailErrors, 404, '');
@@ -75,12 +75,12 @@ class ApiController extends Controller
     {
         $data = $request->only('name');
         $validator = Validator::make($data, [
-            'name' => 'required|string',
+            'name' => 'required|string|unique',
         ]);
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $nameErrors = $errors->get('name');
+            $nameErrors = $errors->first('name');
             if ($nameErrors) {
                 return $this->ApiResponse($nameErrors, 404, '');
             }
@@ -106,9 +106,11 @@ class ApiController extends Controller
     {
 
 
-        $courses = Course::first();
-        if ($courses) {
-            $courses = Course::with(['video_course' => function ($q) {
+        $courses = Course::get();
+        if ($courses)
+        {
+            $courses = Course::with(['video_course' => function ($q)
+            {
                 $q->select('name', 'videos', 'course_id');
             }, 'feedback' => function ($q) {
                 $q->select('body', 'course_id');
@@ -116,7 +118,7 @@ class ApiController extends Controller
             return $this->ApiResponse('Success', 200, $courses);
         } else
             return $this->ApiResponse('There are no courses', 404, "");
-    }
+      }
 
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -128,15 +130,17 @@ class ApiController extends Controller
         $name = $request->name;
 
         if (isset($name)) {
+
             $course = Course::with(['video_course', 'feedback'])->where('name', 'like', '%' . $name . '%')->first();
             if (!$course)
                 return $this->ApiResponse('Not Found', 404, "");
-            else {
+            else
+            {
                 $course = Course::with(['video_course' => function ($q) {
-                    $q->select('videos', 'course_id');
+                    $q->select('name','videos', 'course_id');
                 }, 'feedback' => function ($q) {
                     $q->select('body', 'course_id');
-                }])->where('name', 'like', '%' . $name . '%')->first();
+                }])->where('name', 'like', '%' . $name . '%')->get();
                 return $this->ApiResponse('Success', 200, $course);
             }
         } else {
@@ -165,8 +169,8 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $bodyErrors = $errors->get('body');
-            $course_idErrors = $errors->get('course_id');
+            $bodyErrors = $errors->first('body');
+            $course_idErrors = $errors->first('course_id');
             if ($bodyErrors) {
                 return $this->ApiResponse($bodyErrors, 404, '');
             }
@@ -230,9 +234,9 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $nameErrors = $errors->get('name');
-            $course_idErrors = $errors->get('course_id');
-            $videoErrors = $errors->get('videos');
+            $nameErrors = $errors->first('name');
+            $course_idErrors = $errors->first('course_id');
+            $videoErrors = $errors->first('videos');
             if ($nameErrors) {
                 return $this->ApiResponse($nameErrors, 404, '');
             }
@@ -247,7 +251,9 @@ class ApiController extends Controller
 
         $id = \Illuminate\Support\Facades\Auth::user()->id;
         $insteuctor_id = DB::table('courses')->select('instructor_id')->where('instructor_id', '=', $id)->first();
-        if (\Illuminate\Support\Facades\Auth::user()->type == 'instructor' && $insteuctor_id) {
+
+        if (\Illuminate\Support\Facades\Auth::user()->type == 'instructor' && $insteuctor_id)
+        {
             $data = $request->only('videos', 'course_id' , 'name');
             $validator = Validator::make($data, [
                 'videos' => 'required|unique:videos_courses',
@@ -274,7 +280,8 @@ class ApiController extends Controller
                 return $this->ApiResponse('Uploaded Successfully', 200, '');
             } else
                 return $this->ApiResponse('Course_id not found', 404, "");
-        } else
+        }
+        else
             return $this->ApiResponse('Sorry You Are Not An Instructor OR This Course Not Belongs To You', 404, "");
     }
 
@@ -291,7 +298,7 @@ class ApiController extends Controller
         ]);
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $course_idErrors = $errors->get('course_id');
+            $course_idErrors = $errors->first('course_id');
             if ($course_idErrors) {
                 return $this->ApiResponse($course_idErrors, 404, '');
             }
@@ -300,7 +307,7 @@ class ApiController extends Controller
         $id = $request->course_id;
         //$feedback = FeedbackCourse::where('course_id', $id)->first();
         $course_id = Course::with(['video_course' => function ($q) {
-            $q->select('videos', 'course_id');
+            $q->select('name','videos', 'course_id');
         }, 'feedback' => function ($q) {
             $q->select('body', 'course_id');
         }])->find($id);
@@ -330,7 +337,7 @@ class ApiController extends Controller
 
                 if ($validator->fails()) {
                     $errors = $validator->errors();
-                    $emailErrors = $errors->get('email');
+                    $emailErrors = $errors->first('email');
                     if ($emailErrors) {
                         return $this->ApiResponse($emailErrors, 404, '');
                     }
@@ -405,7 +412,7 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $nameErrors = $errors->get('name');
+            $nameErrors = $errors->first('name');
             // Do something with the error messages
             if ($nameErrors) {
                 return $this->ApiResponse($nameErrors, 404, '');
@@ -442,7 +449,7 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $room_idErrors = $errors->get('room_id');
+            $room_idErrors = $errors->first('room_id');
             if ($room_idErrors) {
                 return $this->ApiResponse($room_idErrors, 404, '');
             }
@@ -571,7 +578,7 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $room_idErrors = $errors->get('room_id');
+            $room_idErrors = $errors->first('room_id');
             if ($room_idErrors) {
                 return $this->ApiResponse($room_idErrors, 404, '');
             }
@@ -606,7 +613,7 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $course_idErrors = $errors->get('course_id');
+            $course_idErrors = $errors->first('course_id');
             if ($course_idErrors) {
                 return $this->ApiResponse($course_idErrors, 404, '');
             }
@@ -683,7 +690,7 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $course_idErrors = $errors->get('course_id');
+            $course_idErrors = $errors->first('course_id');
             if ($course_idErrors) {
                 return $this->ApiResponse($course_idErrors, 404, '');
             }
@@ -701,6 +708,7 @@ class ApiController extends Controller
         }
     }
 
+    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
 
 
@@ -713,7 +721,7 @@ class ApiController extends Controller
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $room_idErrors = $errors->get('room_id');
+            $room_idErrors = $errors->first('room_id');
             if ($room_idErrors) {
                 return $this->ApiResponse($room_idErrors, 404, '');
             }
@@ -730,6 +738,50 @@ class ApiController extends Controller
             return $this->ApiResponse('Not Found Or This Room Is Not In Your Fav', 404, "");
         }
     }
+
+
+
+    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
+
+
+    public function getMyRooms()
+    {
+        $user_id = Facades\Auth::user()->id;
+        $myRooms = DB::table('rooms')->where('user_id' ,$user_id)->first();
+        if ($myRooms)
+        {
+            $myRooms = DB::table('rooms')->where('user_id' ,$user_id)->get();
+            return $this->ApiResponse('success', 200, $myRooms);
+        }
+        else
+        {
+            return $this->ApiResponse('Not Found', 404, '');
+        }
+    }
+
+    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
+
+    public function getMyCourses()
+    {
+        $user_id = Facades\Auth::user()->id;
+        $myCourses = DB::table('courses')->where('instructor_id' ,$user_id)->first();
+        if ($myCourses)
+        {
+            $myCourses = DB::table('courses')->where('instructor_id' ,'=',$user_id)->get();
+            return $this->ApiResponse('success', 200, $myCourses);
+        }
+        else
+        {
+            return $this->ApiResponse('Not Found', 404, '');
+        }
+    }
+
+
+
+    /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
 }
 
 

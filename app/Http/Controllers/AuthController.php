@@ -27,13 +27,13 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), ['email' => 'required|email', 'password' => 'required',],);
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $emailErrors = $errors->get('email');
+            $emailErrors = $errors->first('email');
             // Do something with the error messages
             if ($emailErrors) {
                 return $this->ApiResponse($emailErrors, 404, '');
             }
             $errors = $validator->errors();
-            $passwordErrors = $errors->get('password');
+            $passwordErrors = $errors->first('password');
             // Do something with the error messages
             if ($passwordErrors) {
                 return $this->ApiResponse($passwordErrors, 404, '');
@@ -60,26 +60,26 @@ class AuthController extends Controller
     //REGISTER
     public function register(Request $request){
 
-        $validator = Validator::make($request->all(), ['name' => 'required|string|max:255',
+        $validator = Validator::make($request->all(), ['name' => 'required|string|max:255|regex:/^[a-zA-Z ]+$/',
         'email' => 'required|string|email|max:255|unique:users',
         'password' => 'required|min:6' ]);
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-            $emailErrors = $errors->get('email');
+            $emailErrors = $errors->first('email');
             // Do something with the error messages
             if ($emailErrors) {
                 return $this->ApiResponse($emailErrors, 404, '');
             }
 
-            $passwordErrors = $errors->get('password');
+            $passwordErrors = $errors->first('password');
             // Do something with the error messages
             if ($passwordErrors) {
                 return $this->ApiResponse($passwordErrors, 404, '');
             }
 
 
-            $nameErrors = $errors->get('name');
+            $nameErrors = $errors->first('name');
             // Do something with the error messages
             if ($nameErrors) {
                 return $this->ApiResponse($nameErrors, 404, '');
