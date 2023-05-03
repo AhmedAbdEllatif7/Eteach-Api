@@ -52,6 +52,7 @@ Route::controller(ApiController::class)->group(function (){
     Route::delete('remove_fav_room', 'removeFavRoom');
     Route::get('show_videos_course_id',  'show_videos_course_id');
     Route::get('show_all_course',  'show_all_course');
+    Route::get('show_all_room',  'show_all_room');
     Route::get('show_fav_room', 'showFavRoom');
     Route::get('show_fav_course', 'showFavCourse');
     Route::get('show_feedbacks_Course_id',  'show_feedbacks_Course_id');

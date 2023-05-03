@@ -43,7 +43,7 @@ class ApiController extends Controller
                 'required',
                 'email',
                 Rule::in(['uaahmed89@gmail.com'])
-            ] ], [
+            ]], [
             'email.in' => 'This Api is for only this email => uaahmed89@gmail.com ',
         ]);
 
@@ -66,8 +66,6 @@ class ApiController extends Controller
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
-
 
 
     //CREATE COURSE
@@ -106,19 +104,21 @@ class ApiController extends Controller
     {
 
 
-        $courses = Course::get();
-        if ($courses)
-        {
-            $courses = Course::with(['video_course' => function ($q)
-            {
+        $courses = Course::first();
+        if ($courses) {
+            $courses = Course::with(['video_course' => function ($q) {
                 $q->select('name', 'videos', 'course_id');
             }, 'feedback' => function ($q) {
                 $q->select('body', 'course_id');
             }])->get();
             return $this->ApiResponse('Success', 200, $courses);
         } else
-            return $this->ApiResponse('There are no courses', 404, "");
-      }
+        {
+            $courses = Course::get();
+            return $this->ApiResponse('There are no courses', 404,$courses) ;
+
+        }
+    }
 
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -131,13 +131,12 @@ class ApiController extends Controller
 
         if (isset($name)) {
 
-            $course = Course::with(['video_course', 'feedback'])->where('name', 'like', '%' . $name . '%')->first();
+            $course = Course::with(['video_course', 'feedback'])->where('name', 'like', '%' . $name . '%')->get();
             if (!$course)
                 return $this->ApiResponse('Not Found', 404, "");
-            else
-            {
+            else {
                 $course = Course::with(['video_course' => function ($q) {
-                    $q->select('name','videos', 'course_id');
+                    $q->select('name', 'videos', 'course_id');
                 }, 'feedback' => function ($q) {
                     $q->select('body', 'course_id');
                 }])->where('name', 'like', '%' . $name . '%')->get();
@@ -176,8 +175,8 @@ class ApiController extends Controller
             }
             if ($course_idErrors) {
                 return $this->ApiResponse($course_idErrors, 404, '');
+            }
         }
-    }
 
         $body = $request->body;
         $course_id = $request->course_id;
@@ -213,9 +212,10 @@ class ApiController extends Controller
         $feedback = FeedbackCourse::where('course_id', $id)->first();
         if ($feedback && $course_id) {
             return $this->ApiResponse('Success', 200, $course_id->Feedback);
+        } else {
+            $feedback = FeedbackCourse::get();
+            return $this->ApiResponse('Not Found id or no feedback for this course', 404, $feedback);
         }
-        else
-            return $this->ApiResponse('Not Found id or no feedback for this course', 404, "");
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -225,7 +225,7 @@ class ApiController extends Controller
     public function upload_videos_course_id(Request $request)
     {
 
-        $data = $request->only('course_id', 'videos' ,'name');
+        $data = $request->only('course_id', 'videos', 'name');
         $validator = Validator::make($data, [
             'name' => 'required',
             'course_id' => 'required|integer',
@@ -239,11 +239,9 @@ class ApiController extends Controller
             $videoErrors = $errors->first('videos');
             if ($nameErrors) {
                 return $this->ApiResponse($nameErrors, 404, '');
-            }
-            elseif ($course_idErrors) {
+            } elseif ($course_idErrors) {
                 return $this->ApiResponse($course_idErrors, 404, '');
-            }
-            elseif ($videoErrors) {
+            } elseif ($videoErrors) {
                 return $this->ApiResponse($videoErrors, 404, '');
             }
 
@@ -252,9 +250,8 @@ class ApiController extends Controller
         $id = \Illuminate\Support\Facades\Auth::user()->id;
         $insteuctor_id = DB::table('courses')->select('instructor_id')->where('instructor_id', '=', $id)->first();
 
-        if (\Illuminate\Support\Facades\Auth::user()->type == 'instructor' && $insteuctor_id)
-        {
-            $data = $request->only('videos', 'course_id' , 'name');
+        if (\Illuminate\Support\Facades\Auth::user()->type == 'instructor' && $insteuctor_id) {
+            $data = $request->only('videos', 'course_id', 'name');
             $validator = Validator::make($data, [
                 'videos' => 'required|unique:videos_courses',
                 'course_id' => 'required|string',
@@ -273,15 +270,14 @@ class ApiController extends Controller
                 $VideoCourse = VideosCourse::create([
                     'videos' => $videos_name,
                     'course_id' => $course_id,
-                    'name' =>$name,
+                    'name' => $name,
 
                 ]);
                 $videos->move(public_path('files'), $videos_name);
                 return $this->ApiResponse('Uploaded Successfully', 200, '');
             } else
                 return $this->ApiResponse('Course_id not found', 404, "");
-        }
-        else
+        } else
             return $this->ApiResponse('Sorry You Are Not An Instructor OR This Course Not Belongs To You', 404, "");
     }
 
@@ -307,15 +303,17 @@ class ApiController extends Controller
         $id = $request->course_id;
         //$feedback = FeedbackCourse::where('course_id', $id)->first();
         $course_id = Course::with(['video_course' => function ($q) {
-            $q->select('name','videos', 'course_id');
+            $q->select('name', 'videos', 'course_id');
         }, 'feedback' => function ($q) {
             $q->select('body', 'course_id');
         }])->find($id);
         if ($course_id) {
             //$course_id->feedback = $feedback;
             return $this->ApiResponse('Success', 200, $course_id);
-        } else
-            return $this->ApiResponse('Not Found', 404, "");
+        } else {
+            $course_id = Course::get();
+                return $this->ApiResponse('Not Found', 404, $course_id);
+        }
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -329,36 +327,36 @@ class ApiController extends Controller
         $id = \Illuminate\Support\Facades\Auth::user()->id;
         $user = User::find($id);
 
-            if ($user) {
-                $data = $request->only('email');
-                $validator = Validator::make($data, [
-                    'email' => 'email|unique:users,email,'.$id,
-                ]);
+        if ($user) {
+            $data = $request->only('email');
+            $validator = Validator::make($data, [
+                'email' => 'email|unique:users,email,' . $id,
+            ]);
 
-                if ($validator->fails()) {
-                    $errors = $validator->errors();
-                    $emailErrors = $errors->first('email');
-                    if ($emailErrors) {
-                        return $this->ApiResponse($emailErrors, 404, '');
-                    }
+            if ($validator->fails()) {
+                $errors = $validator->errors();
+                $emailErrors = $errors->first('email');
+                if ($emailErrors) {
+                    return $this->ApiResponse($emailErrors, 404, '');
                 }
-                if ($request->has('name')) {
-                    $user->name = $request->name;
-                }
-
-                if ($request->has('email')) {
-                    $user->email = $request->email;
-                }
-
-                if ($request->has('password')) {
-                    $user->password = bcrypt($request->password);
-                }
-
-                $user->save();
-                return $this->ApiResponse('Updated Successfully', 200, $user);
+            }
+            if ($request->has('name')) {
+                $user->name = $request->name;
             }
 
+            if ($request->has('email')) {
+                $user->email = $request->email;
+            }
+
+            if ($request->has('password')) {
+                $user->password = bcrypt($request->password);
+            }
+
+            $user->save();
+            return $this->ApiResponse('Updated Successfully', 200, $user);
         }
+
+    }
 
 
 
@@ -468,9 +466,7 @@ class ApiController extends Controller
                         'user_id' => Facades\Auth::user()->id,
                         'sender' => \Illuminate\Support\Facades\Auth::user()->name,
                     ]);
-                }
-                else
-                {
+                } else {
                     $message = Message::create([
                         'message_text' => "Joined Successfully",
                         'room_id' => $request->room_id,
@@ -496,10 +492,7 @@ class ApiController extends Controller
                     $file->move(public_path('files'), $file_name);
                     $message = DB::table('messages')->select('sender', 'message_text', 'file', 'created_at')->where('room_id', '=', $room_id)->get();
                     return response()->json(['Room Chat' => $message]);
-                }
-
-                else
-                {
+                } else {
                     $message = Message::create([
                         'message_text' => "Joined Successfully",
                         'room_id' => $request->room_id,
@@ -517,9 +510,7 @@ class ApiController extends Controller
     }
 
 
-
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
 
 
     public function uploadFile(Request $request)
@@ -546,11 +537,7 @@ class ApiController extends Controller
     }
 
 
-
-
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
-
 
 
     public function AddRoomFav(Request $request)
@@ -571,10 +558,10 @@ class ApiController extends Controller
         $data = $request->only('room_id');
         $validator = Validator::make($data, [
             'room_id' => ['required',
-            Rule::unique('favourite_rooms')->where(function ($query)  {
-                return $query->where('user_id', Facades\Auth::user()->id);
-            }) , 'integer'],
-        ] , ['room_id.unique' => 'The Room Already Has Been Added To Your Favourite']);
+                Rule::unique('favourite_rooms')->where(function ($query) {
+                    return $query->where('user_id', Facades\Auth::user()->id);
+                }), 'integer'],
+        ], ['room_id.unique' => 'The Room Already Has Been Added To Your Favourite']);
 
         if ($validator->fails()) {
             $errors = $validator->errors();
@@ -606,10 +593,10 @@ class ApiController extends Controller
         $data = $request->only('course_id');
         $validator = Validator::make($data, [
             'course_id' => ['required',
-                Rule::unique('favourite_courses')->where(function ($query)  {
+                Rule::unique('favourite_courses')->where(function ($query) {
                     return $query->where('user_id', Facades\Auth::user()->id);
                 })],
-        ] , ['course_id.unique' => 'The Course Already Has Been Added To Your Favourite']);
+        ], ['course_id.unique' => 'The Course Already Has Been Added To Your Favourite']);
 
         if ($validator->fails()) {
             $errors = $validator->errors();
@@ -636,38 +623,38 @@ class ApiController extends Controller
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
 
-
     public function showFavRoom(Request $request)
     {
-        $roomo = FavouriteRoom::with('room')->where('user_id' , '=' , Facades\Auth::user()->id)->first();
+        $roomo = FavouriteRoom::with('room')->where('user_id', '=', Facades\Auth::user()->id)->first();
         if ($roomo) {
-            $room = FavouriteRoom::with('room')->where('user_id' , '=' , Facades\Auth::user()->id)->get();
+            $room = FavouriteRoom::with('room')->where('user_id', '=', Facades\Auth::user()->id)->get();
             return $this->ApiResponse('success', 200, $room);
         } else {
-            return $this->ApiResponse('Nothing Added Yet', 404, "");
+            {            $room = FavouriteRoom::get();
+                return $this->ApiResponse('Nothing Added Yet', 404, $room);
+            }
         }
     }
 
 
-
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
 
 
     public function showFavCourse(Request $request)
     {
-        $roomo = FavouriteCourse::with('course')->where('user_id' , '=' , Facades\Auth::user()->id)->first();
-        if ($roomo) {
-            $room = FavouriteCourse::with('course')->where('user_id' , '=' , Facades\Auth::user()->id)->get();
-            return $this->ApiResponse('success', 200, $room);
+        $course = FavouriteCourse::with('course')->where('user_id', '=', Facades\Auth::user()->id)->first();
+        if ($course) {
+            $course = FavouriteCourse::with('course')->where('user_id', '=', Facades\Auth::user()->id)->get();
+            return $this->ApiResponse('success', 200, $course);
         } else {
-            return $this->ApiResponse('Nothing Added Yet', 404, "");
+            {
+                $course = FavouriteCourse::get();
+                return $this->ApiResponse('Nothing Added Yet', 404, $course);
+            }
         }
     }
 
-
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
 
 
     public function getProfile()
@@ -678,7 +665,6 @@ class ApiController extends Controller
 
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
 
 
     public function removeFavCourse(Request $request)
@@ -696,20 +682,16 @@ class ApiController extends Controller
             }
         }
         $course_id = $request->course_id;
-        $course = FavouriteCourse::where('course_id' , $course_id)->where('user_id' , Facades\Auth::user()->id)->first();
-        if ($course)
-        {
+        $course = FavouriteCourse::where('course_id', $course_id)->where('user_id', Facades\Auth::user()->id)->first();
+        if ($course) {
             $course->delete();
             return $this->ApiResponse('Removed From Favourite Courses Successfully', 200, "");
-        }
-        else
-        {
+        } else {
             return $this->ApiResponse('Not Found Or This Course Is Not In Your Fav', 404, "");
         }
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
 
 
     public function removeFavRoom(Request $request)
@@ -727,37 +709,30 @@ class ApiController extends Controller
             }
         }
         $room_id = $request->room_id;
-        $room = FavouriteRoom::where('room_id' , $room_id)->where('user_id' , Facades\Auth::user()->id)->first();
-        if ($room)
-        {
+        $room = FavouriteRoom::where('room_id', $room_id)->where('user_id', Facades\Auth::user()->id)->first();
+        if ($room) {
             $room->delete();
             return $this->ApiResponse('Removed From Favourite Rooms Successfully', 200, "");
-        }
-        else
-        {
+        } else {
             return $this->ApiResponse('Not Found Or This Room Is Not In Your Fav', 404, "");
         }
     }
 
 
-
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
-
 
 
     public function getMyRooms()
     {
         $user_id = Facades\Auth::user()->id;
-        $myRooms = DB::table('rooms')->where('user_id' ,$user_id)->first();
-        if ($myRooms)
-        {
-            $myRooms = DB::table('rooms')->where('user_id' ,$user_id)->get();
+        $myRooms = DB::table('rooms')->where('user_id', $user_id)->first();
+        if ($myRooms) {
+            $myRooms = DB::table('rooms')->where('user_id', $user_id)->get();
             return $this->ApiResponse('success', 200, $myRooms);
-        }
-        else
-        {
-            return $this->ApiResponse('Not Found', 404, '');
-        }
+        } else
+            {            $myRooms = DB::table('rooms')->where('user_id', $user_id)->get();
+                return $this->ApiResponse('Nothing Added Yet', 404, $myRooms);
+            }
     }
 
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
@@ -766,22 +741,36 @@ class ApiController extends Controller
     public function getMyCourses()
     {
         $user_id = Facades\Auth::user()->id;
-        $myCourses = DB::table('courses')->where('instructor_id' ,$user_id)->first();
-        if ($myCourses)
-        {
-            $myCourses = DB::table('courses')->where('instructor_id' ,'=',$user_id)->get();
+        $myCourses = DB::table('courses')->where('instructor_id', $user_id)->first();
+        if ($myCourses) {
+            $myCourses = DB::table('courses')->where('instructor_id', '=', $user_id)->get();
             return $this->ApiResponse('success', 200, $myCourses);
-        }
-        else
-        {
-            return $this->ApiResponse('Not Found', 404, '');
+        }else
+        {            $myCourses = DB::table('rooms')->where('user_id', $user_id)->get();
+            return $this->ApiResponse('Nothing Added Yet', 404, $myCourses);
         }
     }
 
 
-
     /*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
 
+
+
+    public function show_all_room()
+    {
+        $rooms = Room::first();
+        if(!$rooms)
+        {
+            $rooms = Room::get();
+            return $this->ApiResponse('Not Found', 404, $rooms);
+        }
+        else
+        {
+            $rooms = Room::get();
+            return $this->ApiResponse('Success', 200, $rooms);
+
+        }
+    }
 }
 
 
